@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Aero-Route</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+  /* General body styling */
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to bottom right, #e0f7fa, #ffffff);
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    color: #00796b;
+    margin-top: 20px;
+    font-size: 2em;
+    text-shadow: 1px 1px 2px #aaa;
+  }
+
+  p {
+    color: #004d40;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+  }
+
+  /* Controls container */
+  .controls {
+    background: #ffffffcc;
+    display: inline-block;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+  }
+
+  select, button {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid #00796b;
+    margin: 5px;
+    outline: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  select {
+    min-width: 180px;
+    background-color: #e0f2f1;
+    color: #004d40;
+  }
+
+  button {
+    background-color: #00796b;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+  }
+
+  button:hover {
+    background-color: #004d40;
+    transform: scale(1.05);
+  }
+
+  /* Map container styling */
+  #map {
+    height: 70vh;
+    width: 90%;
+    max-width: 1200px;
+    margin: 20px auto;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    border: 2px solid #00796b;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    select, button {
+      width: 80%;
+      margin: 8px 0;
+    }
+
+    .controls {
+      padding: 12px 15px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>🌍 Aero-Route</h1>
+<p>Select a route to see AQI-based best route</p>
+
+<div class="controls">
+  <select id="routeSelect">
+    <option value="delhi-agra">Delhi → Agra</option>
+    <option value="madurai-bangalore">Madurai → Bangalore</option>
+    <option value="bangalore-ap">Bangalore → AP</option>
+  </select>
+  <button onclick="loadRoute()">Show Routes</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// Map and routes logic (unchanged)
+const map = L.map('map').setView([20.0, 78.0], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+function getRandomAQI() { return Math.floor(Math.random()*100)+30; }
+
+const routesData = {
+  "delhi-agra": [
+    { name: "Route 1", coords: [[28.6139,77.2090],[28.5,77.3],[28.2,77.7],[27.1767,78.0081]] },
+    { name: "Route 2", coords: [[28.6139,77.2090],[28.55,77.25],[28.35,77.6],[27.1767,78.0081]] },
+    { name: "Route 3", coords: [[28.6139,77.2090],[28.6,77.35],[28.3,77.65],[27.1767,78.0081]] }
+  ],
+  "madurai-bangalore": [
+    { name: "Route 1", coords: [[9.9252,78.1198],[10.0,77.9],[11.0,77.6],[12.9716,77.5946]] },
+    { name: "Route 2", coords: [[9.9252,78.1198],[10.2,78.0],[11.2,77.65],[12.9716,77.5946]] },
+    { name: "Route 3", coords: [[9.9252,78.1198],[10.1,77.95],[11.1,77.63],[12.9716,77.5946]] }
+  ],
+  "bangalore-ap": [
+    { name: "Route 1", coords: [[12.9716,77.5946],[13.5,78.0],[14.0,78.5],[15.0,79.0]] },
+    { name: "Route 2", coords: [[12.9716,77.5946],[13.6,78.1],[14.1,78.6],[15.0,79.0]] },
+    { name: "Route 3", coords: [[12.9716,77.5946],[13.55,78.05],[14.05,78.55],[15.0,79.0]] }
+  ]
+};
+
+function loadRoute() {
+  const routeKey = document.getElementById("routeSelect").value;
+  map.eachLayer(l => { if (l instanceof L.Polyline || l instanceof L.Marker) map.removeLayer(l); });
+
+  const routes = routesData[routeKey];
+  routes.forEach(r => { r.avgAQI = Math.round(r.coords.reduce((sum,c)=>sum+getRandomAQI(),0)/r.coords.length); });
+  routes.sort((a,b)=>a.avgAQI - b.avgAQI);
+  const bestRoute = routes[0];
+
+  routes.forEach(r => {
+    const color = r === bestRoute ? "green" : "orange";
+    const line = L.polyline(r.coords, { color, weight: 6, opacity: 0.7 }).addTo(map);
+    line.bindPopup(`${r.name} - Avg AQI: ${r.avgAQI}`);
+  });
+
+  const coords = bestRoute.coords;
+  L.marker(coords[0]).addTo(map).bindPopup("Start");
+  L.marker(coords[coords.length-1]).addTo(map).bindPopup("End");
+  map.fitBounds(bestRoute.coords);
+}
+</script>
+
+</body>
+</html>
